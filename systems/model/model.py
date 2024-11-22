@@ -1,6 +1,7 @@
+import json
 import tiktoken
 from openai import OpenAI
-from typing import Literal
+from typing import Literal, Callable
 from openai.types.chat.chat_completion import ChatCompletion
 from openai.types.create_embedding_response import CreateEmbeddingResponse
 
@@ -80,6 +81,30 @@ class Messages:
         self.__prune_max_messages()
         self.__append_new_message(role = role, content = content)
 
+    def record_tool_call(
+            self,
+            tool_call_id : str,
+            tool_call_args_json : str,
+            tool_call_name : str
+            ) -> None:
+        self.__prune_max_messages()
+        self.__append_new_tool_call(
+            tool_call_id = tool_call_id,
+            tool_call_args_json = tool_call_args_json,
+            tool_call_name = tool_call_name
+        )
+    
+    def record_tool_response(
+            self,
+            tool_call_id : str,
+            tool_response_json : str
+            ) -> None:
+        self.__prune_max_messages()
+        self.__append_new_tool_response(
+            tool_response_json = tool_response_json,
+            tool_call_id = tool_call_id
+        )
+
     def __check_valid_role(self, role : str | None) -> None:
         if role is None:
             raise ValueError(
@@ -100,6 +125,152 @@ class Messages:
         token_count = TokenEncoder.get_chat_token_count(content)
         self.convo_messages.append(new_message)
         self.convo_tokens.append(token_count)
+    
+    def __append_new_tool_call(
+            self,
+            tool_call_id : str,
+            tool_call_args_json : str,
+            tool_call_name : str
+            ) -> None:
+        new_message = {
+            "role": "assistant",
+            "tool_calls": [
+                {
+                    "id": tool_call_id,
+                    "type": "function",
+                    "function": {
+                        "arguments": tool_call_args_json,
+                        "name": tool_call_name
+                    }
+                }
+            ]
+        }
+        token_count = TokenEncoder.get_chat_token_count(json.dumps(new_message))
+        self.convo_messages.append(new_message)
+        self.convo_tokens.append(token_count)
+    
+    def __append_new_tool_response(
+            self,
+            tool_response_json : str,
+            tool_call_id : str
+            ) -> None:
+        new_message = {
+            "role": "tool",
+            "content": tool_response_json,
+            "tool_call_id": tool_call_id
+        }
+        token_count = TokenEncoder.get_chat_token_count(json.dumps(new_message))
+        self.convo_messages.append(new_message)
+        self.convo_tokens.append(token_count)
+
+class Tools:
+    tools_list : list[dict]
+    tools_dict : dict[str : Callable]
+
+    def __init__(self):
+        self.tools_list = list()
+        self.tools_dict = dict()
+
+    def get_tools(self) -> list[dict]:
+        return self.tools_list
+    
+    def add_tool(
+        self,
+        func : Callable,
+        func_name : str,
+        func_desc : str,
+        arg_names : list[str],
+        arg_descs : list[str],
+        required_args : list[str] | str = "all"
+        ) -> None:
+
+        if required_args == "all":
+            required_args = arg_names
+
+        self.__args_num_check(
+            arg_names = arg_names,
+            arg_descs = arg_descs
+        )
+
+        arg_types = ["string"] * len(arg_names)
+        
+        func_properties = self.__get_func_properties(
+            arg_names = arg_names, 
+            arg_types = arg_types, 
+            arg_descs = arg_descs
+        )
+        
+        json_format_function = self.__get_json_format_function(
+            func_name = func_name,
+            func_desc = func_desc,
+            func_properties = func_properties,
+            required_args = required_args
+        )
+
+        tool = {
+            "type" : "function",
+            "function" : json_format_function
+        }
+        self.tools_list.append(tool)
+        self.tools_dict[func_name] = func
+
+    def remove_tool(self, function_name : str) -> None:
+        self.tools_list = list(
+            filter(
+                lambda x : x["function"]["name"] != \
+                    function_name, 
+                self.tools_list
+            )
+        )
+    
+    def use_tool(self, func_name : str, func_args_json : str):
+        func_args = json.loads(func_args_json)
+        return self.tools_dict.get(func_name)(**func_args)
+
+    def __args_num_check(
+            self, 
+            arg_names : list[str], 
+            arg_descs : list[str]
+            ) -> None:
+        if len(arg_names) != len(arg_descs):
+            raise ValueError(
+                "No. of arguments and descriptions are not consistent. "
+                f"No. of arguments: {len(arg_names)}, "
+                f"No. of descriptions: {len(arg_descs)}"
+            )
+
+    def __get_func_properties(
+        self, 
+        arg_names : list[str], 
+        arg_types : list[str], 
+        arg_descs : list[str]
+        ) -> dict[str : dict]:
+        func_properties = dict()
+        for indiv_arg_name, indiv_arg_type, indiv_arg_desc in \
+        zip(arg_names, arg_types, arg_descs):
+            func_properties[indiv_arg_name] = {
+                "type" : indiv_arg_type,
+                "description" : indiv_arg_desc
+            }
+        return func_properties
+
+    def __get_json_format_function(
+        self,
+        func_name : str,
+        func_desc : str,
+        func_properties : dict,
+        required_args : list[str]
+        ):
+        return {
+            "name" : func_name,
+            "description" : func_desc,
+            "parameters" : {
+                "type" : "object",
+                "properties" : func_properties
+            },
+            "required" : required_args,
+            "additionalProperties" : False
+        }
 
 class ChatModel:
     client : OpenAI = OpenAI()
@@ -117,11 +288,12 @@ class ChatModel:
     def get_response(
             self,
             messages : Messages,
+            tools : Tools = None,
             model : Literal["gpt-4o-mini", "gpt-4o"] = "gpt-4o-mini"
             ) -> str:
         
         self.__check_token_limit(messages = messages)
-        raw_response = self.__call_api(messages = messages, model = model)
+        raw_response = self.__call_api(messages = messages, tools = tools, model = model)
         finish_reason = self.__check_finish_reason(raw_response = raw_response)
 
         if finish_reason == "stop":
@@ -133,7 +305,17 @@ class ChatModel:
             return content
     
         if finish_reason == "tool_calls":
-            pass
+            self.__handle_tool_calls_response(
+                messages = messages,
+                model = model,
+                raw_response = raw_response,
+                tools = tools
+            )
+            return self.get_response(
+                messages = messages,
+                tools = tools,
+                model = model
+            )
     
     def get_cost(self) -> dict[str : float]:
         input_cost_4o = 0.00250 * self.total_prompt_tokens.get("gpt-4o") / 1000
@@ -159,11 +341,13 @@ class ChatModel:
     def __call_api(
             self, 
             messages : Messages,
+            tools : Tools | None,
             model : str
             ) -> ChatCompletion:
         raw_response = self.client.chat.completions.create(
                 model = model,
-                messages = messages.parse_messages()
+                messages = messages.parse_messages(),
+                tools = None if tools is None else tools.get_tools()
             )
         return raw_response
     
@@ -187,6 +371,31 @@ class ChatModel:
         messages.record_message(content = content, role = "assistant")
         self.__record_token_use(raw_response = raw_response, model = model)
         return content
+    
+    def __handle_tool_calls_response(
+            self,
+            messages : Messages,
+            model : str,
+            raw_response : ChatCompletion,
+            tools : Tools
+            ) -> None:
+        tool_call_id = raw_response.choices[0].message.tool_calls[0].id
+        tool_call_name = raw_response.choices[0].message.tool_calls[0].function.name
+        tool_call_args_json = raw_response.choices[0].message.tool_calls[0].function.arguments
+        messages.record_tool_call(
+            tool_call_id = tool_call_id,
+            tool_call_args_json = tool_call_args_json,
+            tool_call_name = tool_call_name
+        )
+        tool_response_json = tools.use_tool(
+            func_name = tool_call_name,
+            func_args_json = tool_call_args_json
+        )
+        messages.record_tool_response(
+            tool_call_id = tool_call_id,
+            tool_response_json = tool_response_json
+        )
+        self.__record_token_use(raw_response = raw_response, model = model)
 
     def __record_token_use(
             self, 
@@ -245,16 +454,31 @@ class EmbeddingModel:
 if __name__ == "__main__":
     from dotenv import load_dotenv
     load_dotenv()
+
+    def get_cur_loc(**kwargs): 
+        return json.dumps({"location" : "Jurong East"})
+    # Function always outputs Jurong East as the location
     
     newModel = ChatModel()
     messages = Messages()
+    tools = Tools()
 
+    # Add function to tools
+    tools.add_tool(
+        get_cur_loc,
+        'get_current_location',
+        'gets the current location of user based on their id',
+        ['id', 'name'],
+        ['id of user', 'name of user']
+    )
+
+    # Chat with gpt-4o with access to the function
     system_prompt = input("System prompt: ")
     messages.update_sys_prompt(system_prompt)
     print("Send nothing to end the conversation.")
     user_message = input("Input: ")
     while user_message:
         messages.record_message(user_message, "user")
-        print(newModel.get_response(messages))
+        print(newModel.get_response(messages, tools, "gpt-4o"))
         user_message = input("Input: ")
     print(newModel.get_cost())
