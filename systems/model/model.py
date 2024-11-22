@@ -2,6 +2,7 @@ import tiktoken
 from openai import OpenAI
 from typing import Literal
 from openai.types.chat.chat_completion import ChatCompletion
+from openai.types.create_embedding_response import CreateEmbeddingResponse
 
 class TokenLimitError(Exception):
     def __init__(self, message = "Token limit exceeded."):
@@ -196,6 +197,50 @@ class ChatModel:
         completion_tokens = raw_response.usage.completion_tokens
         self.total_prompt_tokens[model] += prompt_tokens
         self.total_completion_tokens[model] += completion_tokens
+
+class EmbeddingModel:
+    total_tokens : int
+    client : OpenAI = OpenAI()
+
+    def __init__(self) -> None:
+        self.total_tokens = 0
+    
+    def generate_embeddings(self, text : str) -> list[float]:
+        self.__check_token_limit(text = text)
+        raw_response = self.__call_api(text = text)
+        embeddings_vector = self.__get_embeddings_vector(raw_response = raw_response)
+        self.__record_token_use(raw_response = raw_response)
+        return embeddings_vector
+    
+    def get_cost(self) -> int:
+        return self.total_tokens
+    
+    def __check_token_limit(self, text : str) -> None:
+        input_token_size = TokenEncoder.get_embed_token_count(text)
+        if input_token_size > 8191:
+            raise TokenLimitError(
+                token_limit = 8191, 
+                token_count = input_token_size)
+    
+    def __call_api(self, text : str) -> CreateEmbeddingResponse:
+        raw_response = self.client.embeddings.create(
+            model = "text-embedding-3-small",
+            input = text,
+            encoding_format = "float"
+        )
+        return raw_response
+    
+    def __get_embeddings_vector(self, raw_response : CreateEmbeddingResponse) -> list[float]:
+        try:
+            embeddings_vector = raw_response.data[0].embedding
+        except (AttributeError, IndexError):
+            raise UnexpectedError(
+                f"Unable to extract output from API response: {raw_response}"
+            )
+        return embeddings_vector
+    
+    def __record_token_use(self, raw_response : CreateEmbeddingResponse) -> None:
+        self.total_tokens += raw_response.usage.total_tokens
 
 if __name__ == "__main__":
     from dotenv import load_dotenv
