@@ -1,5 +1,7 @@
 import tiktoken
+from openai import OpenAI
 from typing import Literal
+from openai.types.chat.chat_completion import ChatCompletion
 
 class TokenLimitError(Exception):
     def __init__(self, message = "Token limit exceeded."):
@@ -97,3 +99,117 @@ class Messages:
         token_count = TokenEncoder.get_chat_token_count(content)
         self.convo_messages.append(new_message)
         self.convo_tokens.append(token_count)
+
+class ChatModel:
+    client : OpenAI = OpenAI()
+    total_prompt_tokens : dict[str : int]
+    total_completion_tokens : dict[str : int]
+
+    def __init__(self) -> None:
+        self.total_prompt_tokens = {
+            "gpt-4o-mini" : 0, "gpt-4o" : 0
+        }
+        self.total_completion_tokens = {
+            "gpt-4o-mini" : 0, "gpt-4o" : 0
+        }
+
+    def get_response(
+            self,
+            messages : Messages,
+            model : Literal["gpt-4o-mini", "gpt-4o"] = "gpt-4o-mini"
+            ) -> str:
+        
+        self.__check_token_limit(messages = messages)
+        raw_response = self.__call_api(messages = messages, model = model)
+        finish_reason = self.__check_finish_reason(raw_response = raw_response)
+
+        if finish_reason == "stop":
+            content = self.__handle_stop_response(
+                messages = messages,
+                model = model,
+                raw_response = raw_response
+            )
+            return content
+    
+        if finish_reason == "tool_calls":
+            pass
+    
+    def get_cost(self) -> dict[str : float]:
+        input_cost_4o = 0.00250 * self.total_prompt_tokens.get("gpt-4o") / 1000
+        output_cost_4o = 0.01000 * self.total_completion_tokens.get("gpt-4o") / 1000
+        input_cost_4o_mini = 0.000150 * self.total_prompt_tokens.get("gpt-4o-mini") / 1000
+        output_cost_4o_mini = 0.000600 * self.total_completion_tokens.get("gpt-4o-mini") / 1000
+        return {
+            "in-gpt-4o" : round(input_cost_4o, 5),
+            "out-gpt-4o" : round(output_cost_4o, 5),
+            "in-gpt-4o-mini" : round(input_cost_4o_mini, 6),
+            "out-gpt-4o-mini" : round(output_cost_4o_mini , 6)
+        }
+    
+    def __check_token_limit(self, messages : Messages) -> None:
+        total_input_tokens = messages.get_total_tokens()
+        if total_input_tokens > 128000:
+            raise TokenLimitError(
+                "Token limit exceeded. \n"
+                f"Token limit: 128000 \n"
+                f"Tokens passed: {total_input_tokens}"
+            )
+    
+    def __call_api(
+            self, 
+            messages : Messages,
+            model : str
+            ) -> ChatCompletion:
+        raw_response = self.client.chat.completions.create(
+                model = model,
+                messages = messages.parse_messages()
+            )
+        return raw_response
+    
+    def __check_finish_reason(self, raw_response : ChatCompletion) -> str | None:
+        finish_reason = raw_response.choices[0].finish_reason
+        if finish_reason == "length":
+            raise TokenLimitError
+        if finish_reason == "content_filter":
+            raise PolicyViolationError
+        if finish_reason != "tool_calls" and finish_reason != "stop":
+            raise UnexpectedError
+        return finish_reason
+    
+    def __handle_stop_response(
+            self,  
+            messages : Messages,
+            model : str,
+            raw_response : ChatCompletion
+            ) -> str:
+        content = raw_response.choices[0].message.content
+        messages.record_message(content = content, role = "assistant")
+        self.__record_token_use(raw_response = raw_response, model = model)
+        return content
+
+    def __record_token_use(
+            self, 
+            raw_response : ChatCompletion, 
+            model : str
+            ) -> None:
+        prompt_tokens = raw_response.usage.prompt_tokens
+        completion_tokens = raw_response.usage.completion_tokens
+        self.total_prompt_tokens[model] += prompt_tokens
+        self.total_completion_tokens[model] += completion_tokens
+
+if __name__ == "__main__":
+    from dotenv import load_dotenv
+    load_dotenv()
+    
+    newModel = ChatModel()
+    messages = Messages()
+
+    system_prompt = input("System prompt: ")
+    messages.update_sys_prompt(system_prompt)
+    print("Send nothing to end the conversation.")
+    user_message = input("Input: ")
+    while user_message:
+        messages.record_message(user_message, "user")
+        print(newModel.get_response(messages))
+        user_message = input("Input: ")
+    print(newModel.get_cost())
