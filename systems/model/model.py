@@ -47,8 +47,8 @@ class Messages:
     def get_max_messages(self) -> int | None:
         return self.max_messages
 
-    def get_sys_prompt(self) -> dict[str : str]:
-        return self.sys_prompt
+    def get_sys_prompt(self) -> str:
+        return self.sys_prompt.get("content")
 
     def get_convo_messages(self) -> list[dict[str : str]]:
         return self.convo_messages
@@ -179,11 +179,15 @@ class Tools:
         func : Callable,
         func_name : str,
         func_desc : str,
-        arg_names : list[str],
-        arg_descs : list[str],
+        arg_names : list[str] = None,
+        arg_descs : list[str] = None,
         required_args : list[str] | str = "all"
         ) -> None:
 
+        if arg_names is None:
+            arg_names = []
+        if arg_descs is None:
+            arg_descs = []
         if required_args == "all":
             required_args = arg_names
 
@@ -289,7 +293,8 @@ class ChatModel:
             self,
             messages : Messages,
             tools : Tools = None,
-            model : Literal["gpt-4o-mini", "gpt-4o"] = "gpt-4o-mini"
+            model : Literal["gpt-4o-mini", "gpt-4o"] = "gpt-4o-mini",
+            record_response : bool = True
             ) -> str:
         
         self.__check_token_limit(messages = messages)
@@ -300,7 +305,8 @@ class ChatModel:
             content = self.__handle_stop_response(
                 messages = messages,
                 model = model,
-                raw_response = raw_response
+                raw_response = raw_response,
+                record_response = record_response
             )
             return content
     
@@ -365,10 +371,12 @@ class ChatModel:
             self,  
             messages : Messages,
             model : str,
-            raw_response : ChatCompletion
+            raw_response : ChatCompletion,
+            record_response : bool
             ) -> str:
         content = raw_response.choices[0].message.content
-        messages.record_message(content = content, role = "assistant")
+        if record_response:
+            messages.record_message(content = content, role = "assistant")
         self.__record_token_use(raw_response = raw_response, model = model)
         return content
     
@@ -382,14 +390,14 @@ class ChatModel:
         tool_call_id = raw_response.choices[0].message.tool_calls[0].id
         tool_call_name = raw_response.choices[0].message.tool_calls[0].function.name
         tool_call_args_json = raw_response.choices[0].message.tool_calls[0].function.arguments
+        tool_response_json = tools.use_tool(
+            func_name = tool_call_name,
+            func_args_json = tool_call_args_json
+        )
         messages.record_tool_call(
             tool_call_id = tool_call_id,
             tool_call_args_json = tool_call_args_json,
             tool_call_name = tool_call_name
-        )
-        tool_response_json = tools.use_tool(
-            func_name = tool_call_name,
-            func_args_json = tool_call_args_json
         )
         messages.record_tool_response(
             tool_call_id = tool_call_id,
