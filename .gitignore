@@ -1,1 +1,5 @@
 .env
+systems/data/FAQs.json
+systems/data/id_map.json
+systems/data/vectorstore.index
+systems/model/__pycache__/
