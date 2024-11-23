@@ -30,6 +30,14 @@ class VectorstoreManager:
             )
         self.__save_state()
 
+    def reset_all(self) -> None:
+        for root, dirs, files in os.walk(self.data_folder_path):
+            for file in files:
+                os.unlink(os.path.join(root, file))
+            for dir in dirs:
+                shutil.rmtree(os.path.join(root, dir))
+        self.update_vectorstore()
+
     def __load_id_map(self) -> dict[int : tuple[str, str]]:
         id_map_path = os.path.join(
             self.data_folder_path,
