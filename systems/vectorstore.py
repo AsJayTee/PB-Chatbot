@@ -17,6 +17,16 @@ class VectorstoreManager:
         self.__load_vectorstore()
         self.embedding_model = embedding_model
 
+    def get_context(self, query : str) -> dict[str : str]:
+        vector = self.embedding_model.generate_embeddings(text = query)
+        vector = np.array(vector).reshape(1, -1)
+        score_list, id_list = self.vectorstore.search(vector, k = 3)
+        relevant_context = self.__get_relevant_context(
+            score_list = score_list, 
+            id_list = id_list
+        )
+        return relevant_context
+
     def update_vectorstore(self) -> None:
         faq_data = self.__load_faq_data()
         if not faq_data:
@@ -37,6 +47,20 @@ class VectorstoreManager:
             for dir in dirs:
                 shutil.rmtree(os.path.join(root, dir))
         self.update_vectorstore()
+
+    def __get_relevant_context(
+            self, 
+            score_list : np.ndarray, 
+            id_list : np.ndarray
+            ) -> dict[str : str]:
+        relevant_context = dict()
+        for score, id in zip(score_list[0], id_list[0]):
+            if score >= 0.4:
+                if (ques_and_ans := self.id_map.get(str(id), None)) is None:
+                    continue
+                ques, ans = ques_and_ans
+                relevant_context[ques] = ans
+        return relevant_context
 
     def __load_id_map(self) -> dict[int : tuple[str, str]]:
         id_map_path = os.path.join(
@@ -130,4 +154,6 @@ if __name__ == '__main__':
     embed_model = EmbeddingModel()
     vm = VectorstoreManager(embed_model)
     vm.update_vectorstore()
+    #print(vm.get_context("Am I fit for therapy?"))
+    #print(vm.get_context("Do you want any apples?"))
     print(embed_model.get_cost())
