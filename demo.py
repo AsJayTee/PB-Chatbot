@@ -27,22 +27,23 @@ if prompt := st.chat_input():
     st.chat_message("assistant").write(msg)
 
 with st.sidebar:
-        costs = main_app.get_new_costs()
-        st.metric(
-            "Embedding model costs", 
-            f"${costs.get("embed_cost"):.6f}", 
-            f"{costs.get("embed_diff"):.6f}",
-            delta_color = "off"
-        )
-        st.metric(
-            "GPT-4o model costs", 
-            f"${costs.get("gpt_4o_cost"):.5f}", 
-            f"{costs.get("gpt_4o_diff"):.5f}",
-            delta_color = "off"
-        )
-        st.metric(
-            "GPT-4o-mini model costs", 
-            f"${costs.get("gpt_4o_mini_cost"):.6f}", 
-            f"{costs.get("gpt_4o_mini_diff"):.6f}",
-            delta_color = "off"
-        )
+    st.image(image = "resources/logo.png")
+    costs = main_app.get_new_costs()
+    st.metric(
+        "Embedding model costs", 
+        f"${costs.get("embed_cost"):.6f}", 
+        f"{costs.get("embed_diff"):.6f}",
+        delta_color = "off"
+    )
+    st.metric(
+        "GPT-4o model costs", 
+        f"${costs.get("gpt_4o_cost"):.5f}", 
+        f"{costs.get("gpt_4o_diff"):.5f}",
+        delta_color = "off"
+    )
+    st.metric(
+        "GPT-4o-mini model costs", 
+        f"${costs.get("gpt_4o_mini_cost"):.6f}", 
+        f"{costs.get("gpt_4o_mini_diff"):.6f}",
+        delta_color = "off"
+    )
