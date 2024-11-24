@@ -429,8 +429,9 @@ class EmbeddingModel:
         self.__record_token_use(raw_response = raw_response)
         return embeddings_vector
     
-    def get_cost(self) -> int:
-        return self.total_tokens
+    def get_cost(self) -> float:
+        embed_cost = 0.000020 * self.total_tokens / 1000
+        return round(embed_cost, 6)
     
     def __check_token_limit(self, text : str) -> None:
         input_token_size = TokenEncoder.get_embed_token_count(text)
