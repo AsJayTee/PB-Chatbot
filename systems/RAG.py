@@ -1,6 +1,6 @@
 import json
-from vectorstore import VectorstoreManager
-from model.model import Messages, ChatModel
+from systems.vectorstore import VectorstoreManager
+from systems.model.model import Messages, ChatModel
 
 class RAG:
     messages : Messages
@@ -36,34 +36,3 @@ class RAG:
     "be understood without the chat history. "
     "Do NOT answer the question, just reformulate it "
     "if needed and otherwise return it as is. Be concise."
-
-if __name__ == "__main__":
-    from model.model import Tools, EmbeddingModel
-    from dotenv import load_dotenv
-    load_dotenv()
-    
-    embeddingModel = EmbeddingModel()
-    newModel = ChatModel()
-    messages = Messages()
-    tools = Tools()
-    vm = VectorstoreManager(embeddingModel)
-    vm.update_vectorstore()
-    rag = RAG(messages, newModel, vm)
-
-    # Add function to tools
-    tools.add_tool(
-        rag.main,
-        'context_retriever',
-        'Retrieves business-specific information to answer user query'
-    )
-
-    # Chat with gpt-4o with access to the function
-    system_prompt = input("System prompt: ")
-    messages.update_sys_prompt(system_prompt)
-    print("Send nothing to end the conversation.")
-    user_message = input("Input: ")
-    while user_message:
-        messages.record_message(user_message, "user")
-        print(f'Response: {newModel.get_response(messages, tools, "gpt-4o")}')
-        user_message = input("Input: ")
-    print(newModel.get_cost())
