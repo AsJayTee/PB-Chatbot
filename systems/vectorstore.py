@@ -2,7 +2,7 @@ import os
 import json
 import shutil
 import numpy as np
-from model.model import EmbeddingModel
+from systems.model.model import EmbeddingModel
 from faiss import IndexFlatIP, IndexIDMap, read_index, write_index
 
 class VectorstoreManager:
@@ -147,13 +147,3 @@ class VectorstoreManager:
                 id_map_file,
                 indent = 4
             )
-
-if __name__ == '__main__':
-    import dotenv
-    dotenv.load_dotenv()
-    embed_model = EmbeddingModel()
-    vm = VectorstoreManager(embed_model)
-    vm.update_vectorstore()
-    #print(vm.get_context("Am I fit for therapy?"))
-    #print(vm.get_context("Do you want any apples?"))
-    print(embed_model.get_cost())
