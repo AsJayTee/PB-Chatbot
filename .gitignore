@@ -4,3 +4,4 @@ systems/data/id_map.json
 systems/data/vectorstore.index
 systems/model/__pycache__/
 systems/__pycache__/
+__pycache__/
