@@ -458,35 +458,3 @@ class EmbeddingModel:
     
     def __record_token_use(self, raw_response : CreateEmbeddingResponse) -> None:
         self.total_tokens += raw_response.usage.total_tokens
-
-if __name__ == "__main__":
-    from dotenv import load_dotenv
-    load_dotenv()
-
-    def get_cur_loc(**kwargs): 
-        return json.dumps({"location" : "Jurong East"})
-    # Function always outputs Jurong East as the location
-    
-    newModel = ChatModel()
-    messages = Messages()
-    tools = Tools()
-
-    # Add function to tools
-    tools.add_tool(
-        get_cur_loc,
-        'get_current_location',
-        'gets the current location of user based on their id',
-        ['id', 'name'],
-        ['id of user', 'name of user']
-    )
-
-    # Chat with gpt-4o with access to the function
-    system_prompt = input("System prompt: ")
-    messages.update_sys_prompt(system_prompt)
-    print("Send nothing to end the conversation.")
-    user_message = input("Input: ")
-    while user_message:
-        messages.record_message(user_message, "user")
-        print(newModel.get_response(messages, tools, "gpt-4o"))
-        user_message = input("Input: ")
-    print(newModel.get_cost())
