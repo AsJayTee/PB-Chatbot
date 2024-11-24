@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 from systems.RAG import RAG
+from systems.cost import CostTracker
 from systems.vectorstore import VectorstoreManager
 from systems.model.model import Messages, ChatModel, Tools, EmbeddingModel
 
@@ -11,6 +12,7 @@ class main:
     tools = Tools()
     vectorstore_manager = VectorstoreManager(embedding_model)
     rag = RAG(messages, chat_model, vectorstore_manager)
+    cost_tracker = CostTracker(chat_model, embedding_model)
 
     def __init__(self) -> None:
         self.vectorstore_manager.update_vectorstore()
@@ -21,6 +23,9 @@ class main:
         self.messages.record_message(query, "user")
         msg = self.chat_model.get_response(self.messages, self.tools, "gpt-4o")
         return msg
+
+    def get_new_costs(self) -> dict[str : float]:
+        return self.cost_tracker.update_costs()
 
     def __set_sys_prompt(self) -> None:
         self.messages.update_sys_prompt(
