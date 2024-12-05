@@ -5,3 +5,4 @@ systems/data/vectorstore.index
 systems/model/__pycache__/
 systems/__pycache__/
 __pycache__/
+systems/data/therapists.json
