@@ -41,11 +41,10 @@ class VectorstoreManager:
         self.__save_state()
 
     def reset_all(self) -> None:
-        for root, dirs, files in os.walk(self.data_folder_path):
+        for root, _, files in os.walk(self.data_folder_path):
             for file in files:
-                os.unlink(os.path.join(root, file))
-            for dir in dirs:
-                shutil.rmtree(os.path.join(root, dir))
+                if file == "FAQs.json" or file == "id_map.json":
+                    os.unlink(os.path.join(root, file))
         self.update_vectorstore()
 
     def __get_relevant_context(
