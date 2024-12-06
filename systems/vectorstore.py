@@ -1,6 +1,5 @@
 import os
 import json
-import shutil
 import numpy as np
 from systems.model.model import EmbeddingModel
 from faiss import IndexFlatIP, IndexIDMap, read_index, write_index
