@@ -33,15 +33,6 @@
             "sat" : ["0900", "1600"],
             "sun" : null
         },
-        "flat_surcharge" : {
-            "mon" : null,
-            "tues" : null,
-            "wed" : null,
-            "thurs" : null,
-            "fri" : null,
-            "sat" : 0.2,
-            "sun" : null
-        },
         "after_hours_surcharge" : {
             "mon" : 0.2,
             "tues" : 0.2,
