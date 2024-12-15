@@ -46,6 +46,9 @@ class Therapists:
     
     def get_therapist_map(self) -> dict:
         return self.therapist_map
+    
+    def get_therapist_factors(self) -> list[str]:
+        return list(self.therapist_map.keys())
 
     def get_therapist_genders(self) -> list[str]:
         gender_map : dict = self.therapist_map.get("gender")
@@ -160,6 +163,12 @@ class PreferredTherapists:
                 refined_therapists = refined_therapists[nested_key]
             preferred_therapists_set = preferred_therapists_set.intersection(refined_therapists)
         return list(preferred_therapists_set)
+
+    def access_therapists(self) -> Therapists:
+        return self.therapists
+    
+    def access_preferences(self) -> Preferences:
+        return self.preferences
     
     def update_preferred_gender(self, gender = None) -> None:
         if gender is None:
@@ -212,13 +221,3 @@ class PreferredTherapists:
     def __sort_closest_options(self, choice : str, options : list[str]) -> list[str]:
         sorted_options = sorted(options, key = lambda option: Levenshtein.distance(choice, option))
         return sorted_options
-
-from pprint import pprint
-tr = Therapists()
-pprint(tr.get_therapist_map())
-print(tr.get_therapist_specialisations())
-ptr = PreferredTherapists(tr)
-ptr.update_preferred_gender("female")
-ptr.update_preferred_language("English")
-ptr.update_preferred_specialisation("Childhood Trauma")
-print(ptr.get_preferred_therapists())
