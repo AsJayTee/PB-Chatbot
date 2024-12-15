@@ -2,6 +2,8 @@ from dotenv import load_dotenv
 from systems.RAG import RAG
 from systems.cost import CostTracker
 from systems.vectorstore import VectorstoreManager
+from systems.filtering_agent import FilteringAgent
+from systems.therapists import Therapists, PreferredTherapists
 from systems.model.model import Messages, ChatModel, Tools, EmbeddingModel
 
 class main:
@@ -13,6 +15,9 @@ class main:
     vectorstore_manager = VectorstoreManager(embedding_model)
     rag = RAG(messages, chat_model, vectorstore_manager)
     cost_tracker = CostTracker(chat_model, embedding_model)
+    therapists = Therapists()
+    preferred_therapists = PreferredTherapists(therapists)
+    filtering_agent = FilteringAgent(messages, chat_model, preferred_therapists)
 
     def __init__(self) -> None:
         self.vectorstore_manager.update_vectorstore()
@@ -42,4 +47,9 @@ class main:
             'context_retriever',
             'Retrieves business-specific and therapy-centric information '
             'to answer user query'
+        )
+        self.tools.add_tool(
+            self.filtering_agent.main,
+            'find_suitable_therapists',
+            'Retrieves suitable therapists based on customer preferences'
         )
