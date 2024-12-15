@@ -1,60 +1,54 @@
 {
-    "therapist_name" : {
-        "profile" : "link to therapist profile",
-        "gender" : "therapist gender",
-        "title" : "therapist title",
+    "David Smith" : {
+        "title" : "Counsellor-In-Training",
+        "profile" : "https://psychologyblossom.com/member/.../",
+        "gender" : "male",
         "status" : {
             "available" : true,
-            "reason" : ""
+            "reason" : null
         },
         "languages" : [
             "English",
             "Mandarin"
         ],
-        "target" : {
-            "individual" : true,
-            "couple" : false,
-            "adult" : true,
-            "child" : false,
-            "teen" : false,
-            "assessment" : false
+        "target_age_group" : {
+            "adults" : true,
+            "children and teens" : false
         },
         "specialisations" : [
             "Anxiety",
-            "Attachment wounds",
-            "Self-Esteem Issues"
+            "Depression",
+            "Stress Management",
+            "Relationship Challenges",
+            "Attachment Issues",
+            "Personal Growth"
         ],
-        "f2f_availability" : {
-            "mon" : ["0800", "1800"],
+        "availability" : {
+            "mon" : ["1800", "2000"],
             "tues" : ["0800", "1800"],
             "wed" : ["0800", "1800"],
-            "thurs" : ["0800", "1800"],
-            "fri" : ["0800", "1800"],
-            "sat" : ["0900", "1600"],
-            "sun" : null
-        },
-        "after_hours_surcharge" : {
-            "mon" : 0.2,
-            "tues" : 0.2,
-            "wed" : 0.2,
-            "thurs" : 0.2,
-            "fri" : 0.2,
-            "sat" : 0.2,
+            "thurs" : null,
+            "fri" : null,
+            "sat" : null,
             "sun" : null
         },
         "rates" : {
             "individual" : {
-                "50 min" : 160,
-                "80 min" : 180
+                "50 min" : 50,
+                "80 min" : 75
             },
-            "couple" : {
-                "50 min" : 300,
-                "80 min" : 340
+            "couples" : {
+                "50 min" : null,
+                "80 min" : null
+            },
+            "family" : {
+                "80 min" : null
             },
             "student" : {
                 "50 min" : null,
                 "80 min" : null
             }
-        }
+        },
+        "special_remarks" : "Only online sessions on Monday"
     }
 }
