@@ -1,22 +1,67 @@
 import os
 import json
+import Levenshtein
 
 class Preferences:
-    pass
+    preferences : dict = dict()
+
+    def get_preferences(self) -> dict:
+        return self.preferences
+
+    def update_gender_preferences(self, gender : str) -> None:
+        self.preferences["gender"] = [gender]
+
+    def clear_gender_preferences(self) -> None:
+        del self.preferences["gender"]
+    
+    def update_language_preferences(self, language : str) -> None:
+        self.preferences["languages"] = [language]
+     
+    def clear_language_preferences(self) -> None:
+        del self.preferences["languages"]
+
+    def update_specialisation_preferences(self, specialisation : str) -> None:
+        self.preferences["specialisations"] = [specialisation]
+    
+    def clear_specialisation_preferences(self) -> None:
+        del self.preferences["specialisations"]
+
+    def update_target_age_group_preferences(self, target_age_group : str) -> None:
+        self.preferences["target_age_group"] = [target_age_group]
+    
+    def clear_target_age_group_preferences(self) -> None:
+        del self.preferences["target_age_group"]
 
 class Therapists:
     therapist_data : dict
     therapist_map : dict = dict()
-    preferences : Preferences
     data_folder_path : str = os.environ["DATA_FOLDER_PATH"]
 
-    def __init__(self, preferences : Preferences) -> None:
+    def __init__(self) -> None:
         self.__load_therapist_data()
         self.__load_therapist_map()
-        self.preferences = preferences
+
+    def get_therapist_data(self) -> dict:
+        return self.therapist_data
     
-    def get_therapists(self) -> list[str]:
-        pass
+    def get_therapist_map(self) -> dict:
+        return self.therapist_map
+
+    def get_therapist_genders(self) -> list[str]:
+        gender_map : dict = self.therapist_map.get("gender")
+        return list(gender_map.keys())
+    
+    def get_therapist_languages(self) -> list[str]:
+        languages_map : dict = self.therapist_map.get("languages")
+        return list(languages_map.keys())
+
+    def get_therapist_specialisations(self) -> list[str]:
+        specialisations_map : dict = self.therapist_map.get("specialisations")
+        return list(specialisations_map.keys())
+    
+    def get_therapist_target_age_groups(self) -> list[str]:
+        target_age_group_map : dict = self.therapist_map.get("target_age_group")
+        return list(target_age_group_map.keys())
 
     def __load_therapist_data(self) -> dict:
         therapist_data_path = os.path.join(
@@ -98,6 +143,82 @@ class Therapists:
             rate_type_map[therapist_name] = rate
         self.therapist_map["rates"] = rates_map
 
+class PreferredTherapists:
+    therapists : Therapists
+    preferences : Preferences = Preferences()
+
+    def __init__(self, therapists : Therapists):
+        self.therapists = therapists
+    
+    def get_preferred_therapists(self) -> list[str]:
+        preferred_therapists_set = set(self.therapists.get_therapist_data().keys())
+        preferences = self.preferences.get_preferences()
+        for key, value in preferences.items():
+            refined_therapists = self.therapists.get_therapist_map()
+            refined_therapists = refined_therapists[key]
+            for nested_key in value:
+                refined_therapists = refined_therapists[nested_key]
+            preferred_therapists_set = preferred_therapists_set.intersection(refined_therapists)
+        return list(preferred_therapists_set)
+    
+    def update_preferred_gender(self, gender = None) -> None:
+        if gender is None:
+            self.preferences.clear_gender_preferences()
+            return None
+        gender_options = self.therapists.get_therapist_genders()
+        if gender not in gender_options:
+            raise ValueError(
+                "'gender' must be one of "
+                f"{self.__sort_closest_options(gender, gender_options)}"
+                )
+        self.preferences.update_gender_preferences(gender)
+
+    def update_preferred_language(self, language = None) -> None:
+        if language is None:
+            self.preferences.clear_language_preferences()
+            return None
+        language_options = self.therapists.get_therapist_languages()
+        if language not in language_options:
+            raise ValueError(
+                "'language' must be one of "
+                f"{self.__sort_closest_options(language, language_options)}"
+                )
+        self.preferences.update_language_preferences(language)
+    
+    def update_preferred_specialisation(self, specialisation = None) -> None:
+        if specialisation is None:
+            self.preferences.clear_specialisation_preferences()
+            return None
+        specialisation_options = self.therapists.get_therapist_specialisations()
+        if specialisation not in specialisation_options:
+            raise ValueError(
+                "'specialisation' must be one of "
+                f"{self.__sort_closest_options(specialisation, specialisation_options)}"
+                )
+        self.preferences.update_specialisation_preferences(specialisation)
+
+    def update_preferred_target_age_group(self, target_age_group = None) -> None:
+        if target_age_group is None:
+            self.preferences.clear_target_age_group_preferences()
+            return None
+        target_age_group_options = self.therapists.get_therapist_target_age_groups()
+        if target_age_group not in target_age_group_options:
+            raise ValueError(
+                "'target_age_group' must be one of "
+                f"{self.__sort_closest_options(target_age_group, target_age_group_options)}"
+                )
+        self.preferences.update_target_age_group_preferences(target_age_group)
+
+    def __sort_closest_options(self, choice : str, options : list[str]) -> list[str]:
+        sorted_options = sorted(options, key = lambda option: Levenshtein.distance(choice, option))
+        return sorted_options
+
 from pprint import pprint
 tr = Therapists()
-pprint(tr.therapist_map)
+pprint(tr.get_therapist_map())
+print(tr.get_therapist_specialisations())
+ptr = PreferredTherapists(tr)
+ptr.update_preferred_gender("female")
+ptr.update_preferred_language("English")
+ptr.update_preferred_specialisation("Childhood Trauma")
+print(ptr.get_preferred_therapists())
