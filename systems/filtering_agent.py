@@ -1,6 +1,6 @@
 from typing import Callable
 from systems.therapists import PreferredTherapists
-from systems.model.model import Messages, ChatModel
+from systems.model.model import Messages, ChatModel, Tools
 
 class FilteringAgent:
     messages : Messages
@@ -73,17 +73,93 @@ class FilteringAgent:
     "Provided preference: {preference}. " \
     "Available factors in system: {factors}. " \
     "Do NOT repeat all the available factors. " \
-    "Instead, ask a question to make them consider one of the available factors."
+    "Instead, ask a question to help them consider one of the available factors."
+
+    filter_gender_prompt : str = \
+    "Using the user preference provided, update their preferred therapist's gender. " \
+    "Call the tool provided until you have either successfully updated their preference, " \
+    "or know that their preference is not one of the possible options. " \
+    "Possible options: {possible_genders}. " \
+    "If you are able to update their preference, reply with Done. " \
+    "If you are not able to update their preference, reply with Error."
+
+    filter_languages_prompt : str = \
+    "Using the user preference provided, update the preferred language their therapist speaks. " \
+    "Call the tool provided until you have either successfully updated their preference, " \
+    "or know that their preference is not one of the possible options. " \
+    "Possible options: {possible_languages}. " \
+    "If you are able to update their preference, reply with Done. " \
+    "If you are not able to update their preference, reply with Error."
 
     def __handle_mismatch_category(self, preference : str) -> str:
         factors = self.preferred_therapists.access_therapists().get_therapist_factors()
         return self.handle_mismatch_response.format(preference = preference, factors = factors)
 
     def __filter_gender(self, preference : str) -> None | str:
-        pass
+        possible_genders = self.preferred_therapists.access_therapists().get_therapist_genders()
+        messages = Messages()
+        messages.update_sys_prompt(
+            self.filter_gender_prompt.format(possible_genders = possible_genders)
+        )
+        messages.record_message(
+            content = preference,
+            role = 'user'
+        )
+        tools = Tools()
+        tools.add_tool(
+            self.preferred_therapists.update_preferred_gender,
+            "update_preferred_gender",
+            "Records the user's preferred therapist gender in the system.",
+            ["gender"],
+            ["Preferred therapist gender."]
+        )
+        response = self.chat_model.get_response(
+            messages = messages,
+            tools = tools,
+            model = "gpt-4o-mini"
+        )
+        if response.startswith("Done"):
+            return None
+        elif response.startswith("Error"):
+            return \
+            f"Available therapist genders: {possible_genders}. " \
+            "Inform the user that there are no therapists with their preferred gender at the moment. " \
+            "Be kind and suggest they choose one of the possible genders. "
+        else:
+            return "Error"
 
     def __filter_languages(self, preference : str) -> None | str:
-        pass
+        possible_languages = self.preferred_therapists.access_therapists().get_therapist_languages()
+        messages = Messages()
+        messages.update_sys_prompt(
+            self.filter_languages_prompt.format(possible_languages = possible_languages)
+        )
+        messages.record_message(
+            content = preference,
+            role = 'user'
+        )
+        tools = Tools()
+        tools.add_tool(
+            self.preferred_therapists.update_preferred_language,
+            "update_preferred_language",
+            "Records the user's preferred language in the system.",
+            ["language"],
+            ["Preferred language the therapist speaks."]
+        )
+        response = self.chat_model.get_response(
+            messages = messages,
+            tools = tools,
+            model = "gpt-4o-mini"
+        )
+        if response.startswith("Done"):
+            return None
+        elif response.startswith("Error"):
+            return \
+            f"Available therapist languages: {possible_languages}. " \
+            "Inform the user that there are no therapists who speak their preferred language at the moment. " \
+            "Be kind and suggest they choose one of the possible languages. "
+        else:
+            return "Error"
 
     def __filter_target_age_group(self, preference : str) -> None | str:
         pass
