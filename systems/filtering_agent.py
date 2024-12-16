@@ -42,13 +42,11 @@ class FilteringAgent:
             content = rephrased_preference,
             role = 'user'
         )
-        print(self.choose_category_message.parse_messages())
         category = self.chat_model.get_response(
             messages = self.choose_category_message,
             model = "gpt-4o-mini",
             record_response = False
         )
-        print(category)
         result = self.agent_tools.get(category)(rephrased_preference)
         self.messages.update_sys_prompt(sys_prompt = ori_sys_prompt)
         if result is None:
@@ -69,17 +67,26 @@ class FilteringAgent:
     "Respond with the category only and say nothing else. " \
     "If none of the categories match, reply with None and say nothing else."
 
-    def __handle_mismatch_category(self, rephrased_preference : str) -> str:
+    handle_mismatch_response : str = \
+    "The user preference provided was not able to be used in the system. " \
+    "Relay this information kindly to the user and suggest a factor that they can consider. " \
+    "Provided preference: {preference}. " \
+    "Available factors in system: {factors}. " \
+    "Do NOT repeat all the available factors. " \
+    "Instead, ask a question to make them consider one of the available factors."
+
+    def __handle_mismatch_category(self, preference : str) -> str:
+        factors = self.preferred_therapists.access_therapists().get_therapist_factors()
+        return self.handle_mismatch_response.format(preference = preference, factors = factors)
+
+    def __filter_gender(self, preference : str) -> None | str:
         pass
 
-    def __filter_gender(self, rephrased_preference : str) -> None | str:
+    def __filter_languages(self, preference : str) -> None | str:
         pass
 
-    def __filter_languages(self, rephrased_preference : str) -> None | str:
+    def __filter_target_age_group(self, preference : str) -> None | str:
         pass
 
-    def __filter_target_age_group(self, rephrased_preference : str) -> None | str:
-        pass
-
-    def __filter_specialisations(self, rephrased_preference : str) -> None | str:
+    def __filter_specialisations(self, preference : str) -> None | str:
         pass
