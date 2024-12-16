@@ -34,7 +34,7 @@ class main:
 
     def __set_sys_prompt(self) -> None:
         self.messages.update_sys_prompt(
-            "You are Naomi, a friendly asisstant from Psychology Blossom, "
+            "You are Tan, a friendly asisstant from Psychology Blossom, "
             "a psychotherapy and counselling centre. Your task is to "
             "answer customer queries with utmost respect and kindness. "
             "Do not make up an answer if you don't know. Be concise. "
@@ -51,5 +51,5 @@ class main:
         self.tools.add_tool(
             self.filtering_agent.main,
             'find_suitable_therapists',
-            'Retrieves suitable therapists based on customer preferences'
+            'Helps customer find suitable therapists based on their preferences'
         )
