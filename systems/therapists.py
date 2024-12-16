@@ -170,53 +170,53 @@ class PreferredTherapists:
     def access_preferences(self) -> Preferences:
         return self.preferences
     
-    def update_preferred_gender(self, gender = None) -> None:
+    def update_preferred_gender(self, gender : str = None) -> str:
         if gender is None:
             self.preferences.clear_gender_preferences()
-            return None
+            return "Successfully cleared 'gender' preferences."
         gender_options = self.therapists.get_therapist_genders()
         if gender not in gender_options:
-            raise ValueError(
-                "'gender' must be one of "
-                f"{self.__sort_closest_options(gender, gender_options)}"
-                )
+            return \
+            f"ValueError: 'gender' must be one of {
+                self.__sort_closest_options(gender, gender_options)}"
         self.preferences.update_gender_preferences(gender)
+        return "Successfully updated 'gender' preferences."
 
-    def update_preferred_language(self, language = None) -> None:
+    def update_preferred_language(self, language : str = None) -> str:
         if language is None:
             self.preferences.clear_language_preferences()
-            return None
+            return "Successfully cleared 'language' preferences."
         language_options = self.therapists.get_therapist_languages()
         if language not in language_options:
-            raise ValueError(
-                "'language' must be one of "
-                f"{self.__sort_closest_options(language, language_options)}"
-                )
+            return \
+            f"ValueError: 'language' must be one of {
+                self.__sort_closest_options(language, language_options)}"
         self.preferences.update_language_preferences(language)
+        return "Successfully updated 'language' preferences."
     
-    def update_preferred_specialisation(self, specialisation = None) -> None:
+    def update_preferred_specialisation(self, specialisation : str = None) -> str:
         if specialisation is None:
             self.preferences.clear_specialisation_preferences()
-            return None
+            return "Successfully cleared 'specialisation' preferences."
         specialisation_options = self.therapists.get_therapist_specialisations()
         if specialisation not in specialisation_options:
-            raise ValueError(
-                "'specialisation' must be one of "
-                f"{self.__sort_closest_options(specialisation, specialisation_options)}"
-                )
+            return \
+            f"ValueError: 'specialisation' must be one of {
+                self.__sort_closest_options(specialisation, specialisation_options)}"
         self.preferences.update_specialisation_preferences(specialisation)
+        return "Successfully updated 'specialisation' preferences."
 
-    def update_preferred_target_age_group(self, target_age_group = None) -> None:
+    def update_preferred_target_age_group(self, target_age_group : str = None) -> str:
         if target_age_group is None:
             self.preferences.clear_target_age_group_preferences()
-            return None
+            return "Successfully cleared 'target_age_group' preferences."
         target_age_group_options = self.therapists.get_therapist_target_age_groups()
         if target_age_group not in target_age_group_options:
-            raise ValueError(
-                "'target_age_group' must be one of "
-                f"{self.__sort_closest_options(target_age_group, target_age_group_options)}"
-                )
+            return \
+            f"ValueError: 'target_age_group' must be one of {
+                self.__sort_closest_options(target_age_group, target_age_group_options)}"
         self.preferences.update_target_age_group_preferences(target_age_group)
+        return "Successfully updated 'target_age_group' preferences."
 
     def __sort_closest_options(self, choice : str, options : list[str]) -> list[str]:
         sorted_options = sorted(options, key = lambda option: Levenshtein.distance(choice, option))
