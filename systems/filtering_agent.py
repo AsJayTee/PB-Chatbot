@@ -122,11 +122,11 @@ class FilteringAgent:
             return None
         elif response.startswith("Error"):
             return \
-            f"Available therapist genders: {possible_genders}. " \
             "Inform the user that there are no therapists with their preferred gender at the moment. " \
-            "Be kind and suggest they choose one of the possible genders. "
+            "Be kind and suggest they choose one of the possible genders. " \
+            f"Available therapist genders: {possible_genders}."
         else:
-            return "Error"
+            return response
 
     def __filter_languages(self, preference : str) -> None | str:
         possible_languages = self.preferred_therapists.access_therapists().get_therapist_languages()
@@ -155,11 +155,11 @@ class FilteringAgent:
             return None
         elif response.startswith("Error"):
             return \
-            f"Available therapist languages: {possible_languages}. " \
             "Inform the user that there are no therapists who speak their preferred language at the moment. " \
-            "Be kind and suggest they choose one of the possible languages. "
+            "Be kind and suggest they choose one of the possible languages. " \
+            f"Available therapist languages: {possible_languages}." 
         else:
-            return "Error"
+            return response
 
     def __filter_target_age_group(self, preference : str) -> None | str:
         pass
