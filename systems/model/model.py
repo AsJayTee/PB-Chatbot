@@ -1,4 +1,5 @@
 import json
+import logging
 import tiktoken
 from openai import OpenAI
 from typing import Literal, Callable
@@ -43,6 +44,9 @@ class Messages:
         }
         self.convo_messages = list()
         self.convo_tokens = list()
+
+    def __repr__(self) -> str:
+        return str(self.parse_messages())
 
     def get_max_messages(self) -> int | None:
         return self.max_messages
@@ -277,7 +281,9 @@ class Tools:
         }
 
 class ChatModel:
+    debug : bool = False
     client : OpenAI = OpenAI()
+    logger = logging.getLogger(__name__)
     total_prompt_tokens : dict[str : int]
     total_completion_tokens : dict[str : int]
 
@@ -308,6 +314,9 @@ class ChatModel:
                 raw_response = raw_response,
                 record_response = record_response
             )
+            if self.debug:
+                self.logger.info(messages)
+                self.logger.info(content)
             return content
     
         if finish_reason == "tool_calls":
@@ -334,6 +343,9 @@ class ChatModel:
             "in-gpt-4o-mini" : round(input_cost_4o_mini, 6),
             "out-gpt-4o-mini" : round(output_cost_4o_mini , 6)
         }
+    
+    def enable_debug(self) -> None:
+        self.debug = True
     
     def __check_token_limit(self, messages : Messages) -> None:
         total_input_tokens = messages.get_total_tokens()
