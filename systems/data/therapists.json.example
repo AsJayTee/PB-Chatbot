@@ -11,7 +11,7 @@
             "English",
             "Mandarin"
         ],
-        "target_age_group" : {
+        "target_patient_age_group" : {
             "adults" : true,
             "children and teens" : false
         },
