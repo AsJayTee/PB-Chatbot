@@ -26,7 +26,7 @@ class FilteringAgent:
             "None" : self.__handle_mismatch_category,
             "gender" : self.__filter_gender,
             "languages" : self.__filter_languages,
-            "target_patient_age_group" : self.__filter_target_patient_age_group,
+            "patient_age_group" : self.__filter_patient_age_group,
             "specialisations" : self.__filter_specialisations
         }
     
@@ -47,9 +47,7 @@ class FilteringAgent:
             model = "gpt-4o-mini",
             record_response = False
         )
-        print(category)
         result = self.agent_tools.get(category)(rephrased_preference)
-        print(result)
         self.messages.update_sys_prompt(sys_prompt = ori_sys_prompt)
         if result is None:
             return str(self.preferred_therapists.get_preferred_therapists())
@@ -61,7 +59,9 @@ class FilteringAgent:
     "formulate a standalone preference which can " \
     "be understood without the chat history. " \
     "Do NOT modify the latest preference, just reformulate it " \
-    "if needed and otherwise return it as is. Be concise." 
+    "if needed and otherwise return it as is. Be concise. " \
+    "If the user preference relates to their own age, use the term " \
+    "'patient age group' to describe their preference."
 
     choose_category_prompt : str = \
     "Given a user preference, choose the category this preference falls under. " \
@@ -93,11 +93,11 @@ class FilteringAgent:
     "If you are able to update their preference, reply with Done. " \
     "If you are not able to update their preference, reply with Error."
 
-    filter_target_patient_age_group_prompt : str = \
+    filter_patient_age_group_prompt : str = \
     "Using the user preference provided, update their preferred therapist's target patient age group. " \
     "Call the tool provided until you have either successfully updated their preference, " \
     "or know that their preference is not one of the possible options. " \
-    "Possible options: {possible_target_patient_age_groups}. " \
+    "Possible options: {possible_patient_age_groups}. " \
     "If you are able to update their preference, reply with Done. " \
     "If you are not able to update their preference, reply with Error."
 
@@ -171,11 +171,11 @@ class FilteringAgent:
         else:
             return response
 
-    def __filter_target_patient_age_group(self, preference : str) -> None | str:
-        possible_target_patient_age_groups = self.preferred_therapists.access_therapists().get_therapist_target_patient_age_groups()
+    def __filter_patient_age_group(self, preference : str) -> None | str:
+        possible_patient_age_groups = self.preferred_therapists.access_therapists().get_therapist_patient_age_groups()
         messages = Messages()
         messages.update_sys_prompt(
-            self.filter_target_patient_age_group_prompt.format(possible_target_patient_age_groups = possible_target_patient_age_groups)
+            self.filter_patient_age_group_prompt.format(possible_patient_age_groups = possible_patient_age_groups)
         )
         messages.record_message(
             content = preference,
@@ -183,10 +183,10 @@ class FilteringAgent:
         )
         tools = Tools()
         tools.add_tool(
-            self.preferred_therapists.update_preferred_target_patient_age_group,
-            "update_preferred_target_patient_age_group",
+            self.preferred_therapists.update_preferred_patient_age_group,
+            "update_preferred_patient_age_group",
             "Records the user's preferred therapist's target patient age group in the system.",
-            ["target_patient_age_group"],
+            ["patient_age_group"],
             ["Therapist's target patient age group."]
         )
         response = self.chat_model.get_response(
@@ -194,14 +194,13 @@ class FilteringAgent:
             tools = tools,
             model = "gpt-4o-mini"
         )
-        print(messages)
         if response.startswith("Done"):
             return None
         elif response.startswith("Error"):
             return \
             "Inform the user that there are no therapists with their preferred target patient age group at the moment. " \
             "Be kind and suggest they choose one of the possible target patient age groups. " \
-            f"Available therapist's target patient age groups: {possible_target_patient_age_groups}." 
+            f"Available therapist's target patient age groups: {possible_patient_age_groups}." 
         else:
             return response
 
