@@ -21,7 +21,9 @@ class main:
     filtering_agent = FilteringAgent(messages, chat_model, preferred_therapists)
     refer = Refer()
 
-    def __init__(self) -> None:
+    def __init__(self, debug : bool = False) -> None:
+        if debug:
+            self.chat_model.enable_debug()
         self.vectorstore_manager.update_vectorstore()
         self.__set_sys_prompt()
         self.__add_tools()
