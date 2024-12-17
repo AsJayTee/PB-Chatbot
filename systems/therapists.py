@@ -26,11 +26,11 @@ class Preferences:
     def clear_specialisation_preferences(self) -> None:
         del self.preferences["specialisations"]
 
-    def update_target_patient_age_group_preferences(self, target_patient_age_group : str) -> None:
-        self.preferences["target_patient_age_group"] = [target_patient_age_group]
+    def update_patient_age_group_preferences(self, patient_age_group : str) -> None:
+        self.preferences["patient_age_group"] = [patient_age_group]
     
-    def clear_target_patient_age_group_preferences(self) -> None:
-        del self.preferences["target_patient_age_group"]
+    def clear_patient_age_group_preferences(self) -> None:
+        del self.preferences["patient_age_group"]
 
 class Therapists:
     therapist_data : dict
@@ -62,9 +62,9 @@ class Therapists:
         specialisations_map : dict = self.therapist_map.get("specialisations")
         return list(specialisations_map.keys())
     
-    def get_therapist_target_patient_age_groups(self) -> list[str]:
-        target_patient_age_group_map : dict = self.therapist_map.get("target_patient_age_group")
-        return list(target_patient_age_group_map.keys())
+    def get_therapist_patient_age_groups(self) -> list[str]:
+        patient_age_group_map : dict = self.therapist_map.get("patient_age_group")
+        return list(patient_age_group_map.keys())
 
     def __load_therapist_data(self) -> dict:
         therapist_data_path = os.path.join(
@@ -81,7 +81,7 @@ class Therapists:
         for therapist_name, therapist_data in self.therapist_data.items():
             self.__map_gender(therapist_name, therapist_data)
             self.__map_languages(therapist_name, therapist_data)
-            self.__map_target_patient_age_group(therapist_name, therapist_data)
+            self.__map_patient_age_group(therapist_name, therapist_data)
             self.__map_specialisations(therapist_name, therapist_data)
             self.__map_availability(therapist_name, therapist_data)
             self.__map_rates(therapist_name, therapist_data)
@@ -105,16 +105,16 @@ class Therapists:
             languages_set.add(therapist_name)
         self.therapist_map["languages"] = languages_map
     
-    def __map_target_patient_age_group(self, therapist_name : str, therapist_data : dict) -> None:
-        therapist_target_patient_age_group : dict[str : bool] = therapist_data.get("target_patient_age_group")
-        therapist_target_patient_age_group = [k for k, v in therapist_target_patient_age_group.items() if v]
-        target_patient_age_group_map : dict = self.therapist_map.get("target_patient_age_group", dict())
-        for target_patient_age_group in therapist_target_patient_age_group:
-            if not (target_patient_age_group_set := target_patient_age_group_map.get(target_patient_age_group, set())):
-                target_patient_age_group_map[target_patient_age_group] = target_patient_age_group_set
-            target_patient_age_group_set : set
-            target_patient_age_group_set.add(therapist_name)
-        self.therapist_map["target_patient_age_group"] = target_patient_age_group_map
+    def __map_patient_age_group(self, therapist_name : str, therapist_data : dict) -> None:
+        therapist_patient_age_group : dict[str : bool] = therapist_data.get("patient_age_group")
+        therapist_patient_age_group = [k for k, v in therapist_patient_age_group.items() if v]
+        patient_age_group_map : dict = self.therapist_map.get("patient_age_group", dict())
+        for patient_age_group in therapist_patient_age_group:
+            if not (patient_age_group_set := patient_age_group_map.get(patient_age_group, set())):
+                patient_age_group_map[patient_age_group] = patient_age_group_set
+            patient_age_group_set : set
+            patient_age_group_set.add(therapist_name)
+        self.therapist_map["patient_age_group"] = patient_age_group_map
 
     def __map_specialisations(self, therapist_name : str, therapist_data : dict) -> None:
         therapist_specialisations : list[str] = therapist_data.get("specialisations")
@@ -206,17 +206,17 @@ class PreferredTherapists:
         self.preferences.update_specialisation_preferences(specialisation)
         return "Successfully updated 'specialisation' preferences."
 
-    def update_preferred_target_patient_age_group(self, target_patient_age_group : str = None) -> str:
-        if target_patient_age_group is None:
-            self.preferences.clear_target_patient_age_group_preferences()
-            return "Successfully cleared 'target_patient_age_group' preferences."
-        target_patient_age_group_options = self.therapists.get_therapist_target_patient_age_groups()
-        if target_patient_age_group not in target_patient_age_group_options:
+    def update_preferred_patient_age_group(self, patient_age_group : str = None) -> str:
+        if patient_age_group is None:
+            self.preferences.clear_patient_age_group_preferences()
+            return "Successfully cleared 'patient_age_group' preferences."
+        patient_age_group_options = self.therapists.get_therapist_patient_age_groups()
+        if patient_age_group not in patient_age_group_options:
             return \
-            f"ValueError: 'target_patient_age_group' must be one of {
-                self.__sort_closest_options(target_patient_age_group, target_patient_age_group_options)}"
-        self.preferences.update_target_patient_age_group_preferences(target_patient_age_group)
-        return "Successfully updated 'target_patient_age_group' preferences."
+            f"ValueError: 'patient_age_group' must be one of {
+                self.__sort_closest_options(patient_age_group, patient_age_group_options)}"
+        self.preferences.update_patient_age_group_preferences(patient_age_group)
+        return "Successfully updated 'patient_age_group' preferences."
 
     def __sort_closest_options(self, choice : str, options : list[str]) -> list[str]:
         sorted_options = sorted(options, key = lambda option: Levenshtein.distance(choice, option))
