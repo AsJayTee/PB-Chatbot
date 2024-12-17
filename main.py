@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 from systems.RAG import RAG
+from systems.refer import Refer
 from systems.cost import CostTracker
 from systems.vectorstore import VectorstoreManager
 from systems.filtering_agent import FilteringAgent
@@ -18,6 +19,7 @@ class main:
     therapists = Therapists()
     preferred_therapists = PreferredTherapists(therapists)
     filtering_agent = FilteringAgent(messages, chat_model, preferred_therapists)
+    refer = Refer()
 
     def __init__(self) -> None:
         self.vectorstore_manager.update_vectorstore()
@@ -52,4 +54,9 @@ class main:
             self.filtering_agent.main,
             'find_suitable_therapists',
             'Helps customer find suitable therapists based on their preferences'
+        )
+        self.tools.add_tool(
+            self.refer.main,
+            'get_referral_info',
+            'Retrieves full contact information for Psychology Blossom'
         )
