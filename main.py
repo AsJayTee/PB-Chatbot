@@ -53,7 +53,7 @@ class main:
         self.tools.add_tool(
             self.filtering_agent.main,
             'find_suitable_therapists',
-            'Helps customer find suitable therapists based on their preferences'
+            'Helps customer narrow down suitable therapists based on their preferences'
         )
         self.tools.add_tool(
             self.refer.main,
