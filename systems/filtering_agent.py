@@ -101,6 +101,14 @@ class FilteringAgent:
     "If you are able to update their preference, reply with Done. " \
     "If you are not able to update their preference, reply with Error."
 
+    filter_specialisations_prompt : str = \
+    "Using the user information provided, update their most suitable therapist's specialisation. " \
+    "Call the tool provided until you have either successfully updated their preference, " \
+    "or know that their preference is not one of the possible options. " \
+    "Possible options: {possible_specialisations}. " \
+    "If you are able to update their preference, reply with Done. " \
+    "If you are not able to update their preference, reply with Error."
+
     def __handle_mismatch_category(self, preference : str) -> str:
         factors = self.preferred_therapists.access_therapists().get_therapist_factors()
         return self.handle_mismatch_response.format(preference = preference, factors = factors)
@@ -205,4 +213,34 @@ class FilteringAgent:
             return response
 
     def __filter_specialisations(self, preference : str) -> None | str:
-        pass
+        possible_specialisations = self.preferred_therapists.access_therapists().get_therapist_specialisations()
+        messages = Messages()
+        messages.update_sys_prompt(
+            self.filter_specialisations_prompt.format(possible_specialisations = possible_specialisations)
+        )
+        messages.record_message(
+            content = preference,
+            role = 'user'
+        )
+        tools = Tools()
+        tools.add_tool(
+            self.preferred_therapists.update_preferred_specialisation,
+            "update_preferred_specialisation",
+            "Records the user's most suitable therapist specialisation in the system.",
+            ["specialisation"],
+            ["Therapist's specialisation."]
+        )
+        response = self.chat_model.get_response(
+            messages = messages,
+            tools = tools,
+            model = "gpt-4o-mini"
+        )
+        if response.startswith("Done"):
+            return None
+        elif response.startswith("Error"):
+            return \
+            "Inform the user that there are no therapists with their preferred specialisation at the moment. " \
+            "Be kind and suggest they choose one of the possible specialisations. " \
+            f"Available therapist specialisations: {possible_specialisations}." 
+        else:
+            return response
