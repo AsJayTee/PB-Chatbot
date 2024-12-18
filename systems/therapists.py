@@ -163,6 +163,14 @@ class PreferredTherapists:
                 refined_therapists = refined_therapists[nested_key]
             preferred_therapists_set = preferred_therapists_set.intersection(refined_therapists)
         return list(preferred_therapists_set)
+    
+    def get_therapist_info(self, therapist_name : str) -> str:
+        therapist_data = self.therapists.get_therapist_data()
+        therapist_info = therapist_data.get(therapist_name, None)
+        if therapist_info is None:
+            closest_therapist_name = self.__sort_closest_options(therapist_name, list(therapist_data.keys()))[0]
+            therapist_info = therapist_data.get(closest_therapist_name)
+        return json.dumps(self.__clean_therapist_info(therapist_info))
 
     def access_therapists(self) -> Therapists:
         return self.therapists
@@ -221,3 +229,17 @@ class PreferredTherapists:
     def __sort_closest_options(self, choice : str, options : list[str]) -> list[str]:
         sorted_options = sorted(options, key = lambda option: Levenshtein.distance(choice, option))
         return sorted_options
+
+    def __clean_therapist_info(self, data):
+        if isinstance(data, dict):
+            return {
+                key: self.__clean_therapist_info(value)
+                for key, value in data.items()
+                if value not in [None, False] and (
+                    not isinstance(value, (dict, list)) or self.__clean_therapist_info(value)
+                )
+            }
+        elif isinstance(data, list):
+            return [self.__clean_therapist_info(item) for item in data if item not in [None, False]]
+        else:
+            return data
