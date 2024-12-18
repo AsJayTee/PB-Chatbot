@@ -1,3 +1,4 @@
+import os
 import json
 import logging
 import tiktoken
@@ -56,6 +57,9 @@ class Messages:
 
     def get_convo_messages(self) -> list[dict[str : str]]:
         return self.convo_messages
+    
+    def get_latest_convo_message(self) -> str:
+        return self.get_convo_messages()[-1].get("content")
     
     def get_total_tokens(self) -> int:
         sys_prompt_tokens = TokenEncoder.get_chat_token_count(
@@ -286,6 +290,7 @@ class ChatModel:
     logger = logging.getLogger(__name__)
     total_prompt_tokens : dict[str : int]
     total_completion_tokens : dict[str : int]
+    logs_folder_path : str = os.environ["LOGS_FOLDER_PATH"]
 
     def __init__(self) -> None:
         self.total_prompt_tokens = {
@@ -294,6 +299,15 @@ class ChatModel:
         self.total_completion_tokens = {
             "gpt-4o-mini" : 0, "gpt-4o" : 0
         }
+        logging.basicConfig(
+            level = logging.INFO,
+            format = '%(asctime)s - %(levelname)s - %(message)s',
+            handlers = [
+                logging.FileHandler(
+                    os.path.join(self.logs_folder_path, "model.log")
+                    )
+                ]
+            )
 
     def get_response(
             self,
@@ -307,6 +321,11 @@ class ChatModel:
         raw_response = self.__call_api(messages = messages, tools = tools, model = model)
         finish_reason = self.__check_finish_reason(raw_response = raw_response)
 
+        if self.debug:
+            self.logger.debug(messages.get_latest_convo_message())
+        else:
+            self.logger.info(messages.get_latest_convo_message())
+
         if finish_reason == "stop":
             content = self.__handle_stop_response(
                 messages = messages,
@@ -315,8 +334,11 @@ class ChatModel:
                 record_response = record_response
             )
             if self.debug:
-                self.logger.info(messages)
+                self.logger.debug(content)
+                self.logger.debug(messages)
+            else:
                 self.logger.info(content)
+                self.logger.info(messages)
             return content
     
         if finish_reason == "tool_calls":
@@ -346,6 +368,11 @@ class ChatModel:
     
     def enable_debug(self) -> None:
         self.debug = True
+        logging.basicConfig(
+            level = logging.DEBUG,
+            format = '%(asctime)s - %(levelname)s - %(message)s',
+            handlers=[logging.StreamHandler()]
+            )
     
     def __check_token_limit(self, messages : Messages) -> None:
         total_input_tokens = messages.get_total_tokens()
