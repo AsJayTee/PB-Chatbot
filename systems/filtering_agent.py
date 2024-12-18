@@ -47,11 +47,34 @@ class FilteringAgent:
             model = "gpt-4o-mini",
             record_response = False
         )
-        result = self.agent_tools.get(category)(rephrased_preference)
+        selected_tool = self.agent_tools.get(category, None)
+        if selected_tool is None:
+            return "An error has ocurred. Please call the tool again."
+        result = selected_tool(rephrased_preference)
         self.messages.update_sys_prompt(sys_prompt = ori_sys_prompt)
         if result is None:
             return str(self.preferred_therapists.get_preferred_therapists())
         return result
+
+    def get_therapist_info(self, **kwargs) -> str:
+        ori_sys_prompt = self.messages.get_sys_prompt()
+        self.messages.update_sys_prompt(sys_prompt = self.get_therapist_name_prompt)
+        tools = Tools()
+        tools.add_tool(
+            self.preferred_therapists.get_therapist_info,
+            "get_therapist_info",
+            "Get therapist info based on their name. " \
+            "If there is no match, it will fetch information from the closest name.",
+            ["therapist_name"],
+            ["Therapist name."]
+        )
+        response = self.chat_model.get_response(
+            messages = self.messages,
+            tools = tools,
+            model = "gpt-4o-mini"
+        )
+        self.messages.update_sys_prompt(sys_prompt = ori_sys_prompt)
+        return response
 
     rephrase_preference_prompt : str = \
     "Given a chat history and the latest user preference " \
@@ -63,11 +86,18 @@ class FilteringAgent:
     "If the user preference relates to their own age, use the term " \
     "'patient age group' to describe their preference."
 
+    get_therapist_name_prompt : str = \
+    "Given the names of therapists, use the tools available to you to " \
+    "get their information and return it."
+
     choose_category_prompt : str = \
     "Given a user preference, choose the category this preference falls under. " \
     "Available categories: {categories}. " \
     "Respond with the category only and say nothing else. " \
     "If none of the categories match, reply with None and say nothing else."
+    "If the provided preference references previous preferences, "
+    "focus on choosing the category based on newer information."
+    "You MUST say nothing else and answer with only the category name, or None."
 
     handle_mismatch_response : str = \
     "The user preference provided was not able to be used in the system. " \
