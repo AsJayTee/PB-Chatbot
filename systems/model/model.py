@@ -371,7 +371,7 @@ class ChatModel:
         logging.basicConfig(
             level = logging.DEBUG,
             format = '%(asctime)s - %(levelname)s - %(message)s',
-            handlers=[logging.StreamHandler()]
+            handlers = [logging.StreamHandler()]
             )
     
     def __check_token_limit(self, messages : Messages) -> None:
