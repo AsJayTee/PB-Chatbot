@@ -6,7 +6,6 @@ class FilteringAgent:
     messages : Messages
     chat_model : ChatModel
     agent_tools : dict[str : Callable]
-    choose_category_message : Messages
     preferred_therapists : PreferredTherapists
 
     def __init__(
@@ -18,10 +17,6 @@ class FilteringAgent:
         self.messages = messages
         self.chat_model = chat_model
         self.preferred_therapists = preferred_therapists
-        self.choose_category_message = Messages(max_messages = 1)
-        categories = preferred_therapists.access_therapists().get_therapist_factors()
-        self.choose_category_message.update_sys_prompt(
-            self.choose_category_prompt.format(categories = categories))
         self.agent_tools = {
             "None" : self.__handle_mismatch_category,
             "gender" : self.__filter_gender,
@@ -32,18 +27,17 @@ class FilteringAgent:
     
     def main(self, **kwargs) -> str:
         ori_sys_prompt = self.messages.get_sys_prompt()
+        categories = self.preferred_therapists.access_therapists().get_therapist_factors()
         self.messages.update_sys_prompt(sys_prompt = self.rephrase_preference_prompt)
         rephrased_preference = self.chat_model.get_response(
             messages = self.messages,
             model = "gpt-4o-mini",
             record_response = False
         )
-        self.choose_category_message.record_message(
-            content = rephrased_preference,
-            role = 'user'
-        )
+        self.messages.update_sys_prompt(
+            sys_prompt = self.choose_category_prompt.format(categories = categories))
         category = self.chat_model.get_response(
-            messages = self.choose_category_message,
+            messages = self.messages,
             model = "gpt-4o-mini",
             record_response = False
         )
@@ -91,7 +85,7 @@ class FilteringAgent:
     "get their information and return it."
 
     choose_category_prompt : str = \
-    "Given a user preference, choose the category this preference falls under. " \
+    "Given a chat history, choose the category the latest user preference falls under. " \
     "Available categories: {categories}. " \
     "Respond with the category only and say nothing else. " \
     "If none of the categories match, reply with None and say nothing else."
