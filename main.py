@@ -64,7 +64,8 @@ class main:
             'find_suitable_therapists',
             'Helps customer narrow down suitable therapists. '
             'The tool remembers previous preferences so you may use it again and again after '
-            'the customer provides you with an updated preference.'
+            'the customer provides you with an updated preference. '
+            'It retrieves the most suitable list of therapists based on all customer preferences provided.'
         )
         self.tools.add_tool(
             self.refer.main,
