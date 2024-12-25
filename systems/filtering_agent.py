@@ -22,7 +22,8 @@ class FilteringAgent:
             "gender" : self.__filter_gender,
             "languages" : self.__filter_languages,
             "patient_age_group" : self.__filter_patient_age_group,
-            "specialisations" : self.__filter_specialisations
+            "specialisations" : self.__filter_specialisations,
+            "rates" : self.__filter_price
         }
     
     def main(self, **kwargs) -> str:
@@ -132,6 +133,13 @@ class FilteringAgent:
     "Possible options: {possible_specialisations}. " \
     "If you are able to update their preference, reply with Done. " \
     "If you are not able to update their preference, reply with Error."
+
+    filter_price_prompt : str = \
+    "Using the user preference provided, update their preferred therapist's price. " \
+    "Call the tool provided until you have either successfully updated their preference, " \
+    "or know that it is not possible to accomodate their preference. " \
+    "If you are able to update their preference, reply with Done. " \
+    "If you are not able to update their preference, reply with Error and explain what went wrong."
 
     def __handle_mismatch_category(self, preference : str) -> str:
         factors = self.preferred_therapists.access_therapists().get_therapist_factors()
@@ -266,5 +274,36 @@ class FilteringAgent:
             "Inform the user that there are no therapists with their preferred specialisation at the moment. " \
             "Be kind and suggest they choose one of the possible specialisations. " \
             f"Available therapist specialisations: {possible_specialisations}." 
+        else:
+            return response
+
+    def __filter_price(self, preference : str) -> None | str:
+        messages = Messages()
+        messages.update_sys_prompt(self.filter_price_prompt)
+        messages.record_message(
+            content = preference, 
+            role = 'user'
+        )
+        tools = Tools()
+        tools.add_tool(
+            self.preferred_therapists.update_preferred_price,
+            "update_preferred_price", 
+            "Records the user's preferred therapist price range in the system.",
+            ["upper_bound", "lower_bound", "type"],
+            [
+                "Price upper bound. Must be an integer.", 
+                "Price lower bound. Must be an integer.", 
+                "Type of therapy. Can only be one of ['individual', 'couples', 'family']"
+            ],
+            ["type"]
+        )
+        response = self.chat_model.get_response(
+            messages = messages,
+            tools = tools,
+            model = "gpt-4o-mini"
+        )
+        print(response)
+        if response.startswith("Done"):
+            return None
         else:
             return response
