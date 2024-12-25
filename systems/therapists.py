@@ -1,36 +1,7 @@
 import os
 import json
 import Levenshtein
-
-class Preferences:
-    preferences : dict = dict()
-
-    def get_preferences(self) -> dict:
-        return self.preferences
-
-    def update_gender_preferences(self, gender : str) -> None:
-        self.preferences["gender"] = [gender]
-
-    def clear_gender_preferences(self) -> None:
-        del self.preferences["gender"]
-    
-    def update_language_preferences(self, language : str) -> None:
-        self.preferences["languages"] = [language]
-     
-    def clear_language_preferences(self) -> None:
-        del self.preferences["languages"]
-
-    def update_specialisation_preferences(self, specialisation : str) -> None:
-        self.preferences["specialisations"] = [specialisation]
-    
-    def clear_specialisation_preferences(self) -> None:
-        del self.preferences["specialisations"]
-
-    def update_patient_age_group_preferences(self, patient_age_group : str) -> None:
-        self.preferences["patient_age_group"] = [patient_age_group]
-    
-    def clear_patient_age_group_preferences(self) -> None:
-        del self.preferences["patient_age_group"]
+from typing import Literal, Callable
 
 class Therapists:
     therapist_data : dict
@@ -146,29 +117,96 @@ class Therapists:
             rate_type_map[therapist_name] = rate
         self.therapist_map["rates"] = rates_map
 
-class PreferredTherapists:
+class Preferences:
     therapists : Therapists
-    preferences : Preferences = Preferences()
+    preferences_dict : dict = dict()
+    rates_preferred_therapists : set | None = None
+    availability_preferred_therapists : set | None = None
 
-    def __init__(self, therapists : Therapists):
+    def __init__(self, therapists : Therapists) -> None:
         self.therapists = therapists
-    
+
     def get_preferred_therapists(self) -> list[str]:
         preferred_therapists_set = set(self.therapists.get_therapist_data().keys())
-        preferences = self.preferences.get_preferences()
-        for key, value in preferences.items():
+        preferences_dict = self.preferences_dict
+        for key, value in preferences_dict.items():
             refined_therapists = self.therapists.get_therapist_map()
             refined_therapists = refined_therapists[key]
             for nested_key in value:
                 refined_therapists = refined_therapists[nested_key]
             preferred_therapists_set = preferred_therapists_set.intersection(refined_therapists)
+        if self.rates_preferred_therapists is not None:
+            preferred_therapists_set = preferred_therapists_set.intersection(self.rates_preferred_therapists)
         return list(preferred_therapists_set)
+
+    def update_gender_preferences(self, gender : str) -> None:
+        self.preferences_dict["gender"] = [gender]
+
+    def clear_gender_preferences(self) -> None:
+        del self.preferences_dict["gender"]
+    
+    def update_language_preferences(self, language : str) -> None:
+        self.preferences_dict["languages"] = [language]
+     
+    def clear_language_preferences(self) -> None:
+        del self.preferences_dict["languages"]
+
+    def update_specialisation_preferences(self, specialisation : str) -> None:
+        self.preferences_dict["specialisations"] = [specialisation]
+    
+    def clear_specialisation_preferences(self) -> None:
+        del self.preferences_dict["specialisations"]
+
+    def update_patient_age_group_preferences(self, patient_age_group : str) -> None:
+        self.preferences_dict["patient_age_group"] = [patient_age_group]
+    
+    def clear_patient_age_group_preferences(self) -> None:
+        del self.preferences_dict["patient_age_group"]
+
+    def update_availability_preferences(self, availability : dict) -> None:
+        pass
+
+    def clear_availability_preferences(self) -> None:
+        self.availability_preferred_therapists = None
+
+    def update_rates_preferences(
+            self, 
+            upper_bound : int | None, 
+            lower_bound : int | None, 
+            type : str
+            ) -> None:
+        if lower_bound is None:
+            lower_bound = 0
+        if upper_bound is None:
+            upper_bound = 999
+        therapist_rates : dict = self.therapists.get_therapist_map().get('rates')
+        therapist_rates_pair : dict = therapist_rates.get(type)
+        self.rates_preferred_therapists = set()
+        for therapist, rates_dict in therapist_rates_pair.items():
+            rates_dict : dict
+            if any(lower_bound <= rate and rate <= upper_bound for rate in rates_dict.values()): 
+                self.rates_preferred_therapists.add(therapist)
+
+    def clear_rates_preferences(self) -> None:
+        self.rates_preferred_therapists = None
+
+class PreferredTherapists:
+    therapists : Therapists
+    preferences : Preferences
+
+    def __init__(self, therapists : Therapists):
+        self.therapists = therapists
+        self.preferences = Preferences(therapists)
+    
+    def get_preferred_therapists(self) -> list[str]:
+        return self.preferences.get_preferred_therapists()
     
     def get_therapist_info(self, therapist_name : str) -> str:
         therapist_data = self.therapists.get_therapist_data()
         therapist_info = therapist_data.get(therapist_name, None)
         if therapist_info is None:
-            closest_therapist_name = self.__sort_closest_options(therapist_name, list(therapist_data.keys()))[0]
+            closest_therapist_name = self.__sort_closest_options(
+                therapist_name, list(therapist_data.keys()))[0]
             therapist_info = therapist_data.get(closest_therapist_name)
         return json.dumps(self.__clean_therapist_info(therapist_info))
 
@@ -225,6 +263,27 @@ class PreferredTherapists:
                 self.__sort_closest_options(patient_age_group, patient_age_group_options)}"
         self.preferences.update_patient_age_group_preferences(patient_age_group)
         return "Successfully updated 'patient_age_group' preferences."
+
+    def update_preferred_price(
+        self, 
+        upper_bound : str = None, 
+        lower_bound : str = None,
+        type : Literal["individual", "couples", "family"] = None
+        ) -> str:
+        type_options = ["individual", "couples", "family"]
+        if type not in type_options:
+            return f"ValueError: 'type' must be one of {type_options}. " \
+                "Please check with the user to clarify their preferred type of therapy."
+        if upper_bound is not None:
+            upper_bound : int = int(upper_bound)
+        if lower_bound is not None:
+            lower_bound : int = int(lower_bound)
+        self.preferences.update_rates_preferences(
+            upper_bound = upper_bound, 
+            lower_bound = lower_bound, 
+            type = type
+        )
+        return "Successfully updated 'rates' preferences."
 
     def __sort_closest_options(self, choice : str, options : list[str]) -> list[str]:
         sorted_options = sorted(options, key = lambda option: Levenshtein.distance(choice, option))
