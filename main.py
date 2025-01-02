@@ -9,19 +9,30 @@ from systems.model.model import Messages, ChatModel, Tools, EmbeddingModel
 
 class main:
     load_dotenv()
-    embedding_model = EmbeddingModel()
-    chat_model = ChatModel()
-    messages = Messages()
-    tools = Tools()
-    vectorstore_manager = VectorstoreManager(embedding_model)
-    rag = RAG(messages, chat_model, vectorstore_manager)
-    cost_tracker = CostTracker(chat_model, embedding_model)
-    therapists = Therapists()
-    preferred_therapists = PreferredTherapists(therapists)
-    filtering_agent = FilteringAgent(messages, chat_model, preferred_therapists)
-    refer = Refer()
+    embedding_model : EmbeddingModel
+    chat_model : ChatModel
+    messages : Messages
+    tools : Tools
+    vectorstore_manager : VectorstoreManager
+    rag : RAG
+    cost_tracker : CostTracker
+    therapists : Therapists
+    preferred_therapists : PreferredTherapists
+    filtering_agent : FilteringAgent
+    refer : Refer
 
     def __init__(self, debug : bool = False) -> None:
+        self.embedding_model = EmbeddingModel()
+        self.chat_model = ChatModel()
+        self.messages = Messages()
+        self.tools = Tools()
+        self.vectorstore_manager = VectorstoreManager(self.embedding_model)
+        self.rag = RAG(self.messages, self.chat_model, self.vectorstore_manager)
+        self.cost_tracker = CostTracker(self.chat_model, self.embedding_model)
+        self.therapists = Therapists()
+        self.preferred_therapists = PreferredTherapists(self.therapists)
+        self.filtering_agent = FilteringAgent(self.messages, self.chat_model, self.preferred_therapists)
+        self.refer = Refer()
         if debug:
             self.chat_model.enable_debug()
         self.vectorstore_manager.update_vectorstore()

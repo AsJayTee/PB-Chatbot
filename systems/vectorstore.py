@@ -111,6 +111,8 @@ class VectorstoreManager:
                 id = np.array([key], dtype = 'int64')
                 self.vectorstore.remove_ids(id)
                 ids_to_remove.append(key)
+            #except TypeError:
+            #    continue
         for key in ids_to_remove:
             self.id_map.pop(key)
         return new_faq_questions
