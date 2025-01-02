@@ -299,6 +299,7 @@ class ChatModel:
         self.total_completion_tokens = {
             "gpt-4o-mini" : 0, "gpt-4o" : 0
         }
+        os.makedirs(self.logs_folder_path, exist_ok = True)
         logging.basicConfig(
             level = logging.INFO,
             format = '%(asctime)s - %(levelname)s - %(message)s',
