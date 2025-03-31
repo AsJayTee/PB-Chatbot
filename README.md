@@ -11,7 +11,7 @@ A powerful chatbot platform designed for **Psychology Blossom**, a Singapore-bas
 ### ⚙️ Optimized Retrieval-Augmented Generation (RAG) System
 The chatbot employs a **custom RAG architecture** that optimizes for both accuracy and cost-efficiency. 
 
-Unlike traditional RAG systems that embed entire document chunks, this architecture only embeds the questions - taking full advantage of the **structured nature** of Q&A data.
+Unlike traditional RAG systems that embed entire document chunks, this architecture takes full advantage of the **structured nature** of Q&A data by embedding only the questions.
 
 - **Smart Query Handling**: Refines user queries with contextual awareness.
 - **Semantic Similarity Search**: Retrieves context efficiently by matching queries to pre-indexed questions using cosine similarity.
