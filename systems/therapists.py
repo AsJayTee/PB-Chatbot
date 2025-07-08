@@ -184,7 +184,8 @@ class Preferences:
         self.rates_preferred_therapists = set()
         for therapist, rates_dict in therapist_rates_pair.items():
             rates_dict : dict
-            if any(lower_bound <= rate and rate <= upper_bound for rate in rates_dict.values()): 
+            valid_rates = [rate for rate in rates_dict.values() if rate is not None]
+            if any(lower_bound <= rate and rate <= upper_bound for rate in valid_rates): 
                 self.rates_preferred_therapists.add(therapist)
 
     def clear_rates_preferences(self) -> None:
@@ -222,9 +223,7 @@ class PreferredTherapists:
             return "Successfully cleared 'gender' preferences."
         gender_options = self.therapists.get_therapist_genders()
         if gender not in gender_options:
-            return \
-            f"ValueError: 'gender' must be one of {
-                self.__sort_closest_options(gender, gender_options)}"
+            return f"ValueError: 'gender' must be one of {self.__sort_closest_options(gender, gender_options)}"
         self.preferences.update_gender_preferences(gender)
         return "Successfully updated 'gender' preferences."
 
@@ -234,9 +233,7 @@ class PreferredTherapists:
             return "Successfully cleared 'language' preferences."
         language_options = self.therapists.get_therapist_languages()
         if language not in language_options:
-            return \
-            f"ValueError: 'language' must be one of {
-                self.__sort_closest_options(language, language_options)}"
+            return f"ValueError: 'language' must be one of {self.__sort_closest_options(language, language_options)}"
         self.preferences.update_language_preferences(language)
         return "Successfully updated 'language' preferences."
     
@@ -246,9 +243,7 @@ class PreferredTherapists:
             return "Successfully cleared 'specialisation' preferences."
         specialisation_options = self.therapists.get_therapist_specialisations()
         if specialisation not in specialisation_options:
-            return \
-            f"ValueError: 'specialisation' must be one of {
-                self.__sort_closest_options(specialisation, specialisation_options)}"
+            return f"ValueError: 'specialisation' must be one of {self.__sort_closest_options(specialisation, specialisation_options)}"
         self.preferences.update_specialisation_preferences(specialisation)
         return "Successfully updated 'specialisation' preferences."
 
@@ -258,9 +253,7 @@ class PreferredTherapists:
             return "Successfully cleared 'patient_age_group' preferences."
         patient_age_group_options = self.therapists.get_therapist_patient_age_groups()
         if patient_age_group not in patient_age_group_options:
-            return \
-            f"ValueError: 'patient_age_group' must be one of {
-                self.__sort_closest_options(patient_age_group, patient_age_group_options)}"
+            return f"ValueError: 'patient_age_group' must be one of {self.__sort_closest_options(patient_age_group, patient_age_group_options)}"
         self.preferences.update_patient_age_group_preferences(patient_age_group)
         return "Successfully updated 'patient_age_group' preferences."
 
